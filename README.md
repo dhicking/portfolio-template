@@ -31,7 +31,7 @@ composer setup      # installs dependencies, creates .env, builds assets
 composer run dev    # http://localhost:8000
 ```
 
-3. Replace the sample content ([Make it yours](#make-it-yours)), push, and [deploy to Laravel Cloud](#deploy-to-laravel-cloud).
+3. Replace the sample content ([Make it yours](#make-it-yours)) and push.
 
 ## Make it yours
 
@@ -80,72 +80,6 @@ draft: true # visible locally, hidden in production
 Code blocks are highlighted on the server (PHP, JS/TS, CSS, HTML, SQL, YAML and more), so no highlighting JavaScript is sent to the browser.
 
 Changes to `content/` show up on the next page load, locally and after each deploy.
-
----
-
-## Deploy to Laravel Cloud
-
-Push your copy to GitHub, GitLab or Bitbucket first.
-
-### 1. Create the application without a database
-
-**Dashboard:** create an application from your repository and don't add a database.
-
-**CLI:** `cloud ship` always creates a database (Postgres unless you pick another) and has no option to skip it. Ship, then detach the database and clear the deploy command, which would otherwise run `php artisan migrate`:
-
-```sh
-cloud ship -n
-cloud environment:list <app-name> --json -n   # note the environment id
-cloud environment:update <environment-id> --database-id="" --deploy-command="" --json -n --force
-```
-
-Then delete the unused cluster from **Organization → Resources → Databases**, or with `cloud database-cluster:delete <cluster-id> -n --force`.
-
-### 2. Let the app sleep and render on the server
-
-`cloud ship` leaves Scale to Zero off and turns the scheduler on. This app has no scheduled tasks, so turn the scheduler off, and turn on Scale to Zero and Inertia SSR:
-
-```sh
-cloud instance:list --json -n   # note the App instance id
-cloud instance:update <instance-id> \
-  --scale-to-zero=true --scale-to-zero-timeout=5 \
-  --uses-inertia-ssr=true --uses-scheduler=0 \
-  --json -n --force
-```
-
-The timeout is in minutes (1–60) and the API rejects the update without it. Use `--uses-scheduler=0` rather than `=false`: `false` was ignored in CLI v0.6.1.
-
-SSR also needs the SSR bundle, so switch the last build command from `npm run build` to `npm run build:ssr`:
-
-```sh
-cloud environment:update <environment-id> --json -n --force --build-command="$(printf 'composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader\n\nnpm ci --audit false\nnpm run build:ssr')"
-```
-
-In the dashboard, the same settings are on the App cluster (Scale to Zero, Use Inertia SSR, Scheduler) and under **Settings → Deployments** (build and deploy commands).
-
-### 3. Turn on the contact form
-
-Messages are only delivered by email, so in production the form stays hidden until a real mailer is configured. Until then the contact page shows your email address. Add these environment variables:
-
-| Variable            | Value                                                                          |
-| ------------------- | ------------------------------------------------------------------------------ |
-| `MAIL_MAILER`       | `resend`                                                                       |
-| `RESEND_API_KEY`    | From [resend.com](https://resend.com). The Resend package is already installed |
-| `MAIL_FROM_ADDRESS` | An address on a domain you've verified in Resend, e.g. `site@yourname.dev`     |
-| `APP_NAME`          | Your name. Used as the email sender name                                       |
-
-Any other Laravel mailer (SMTP, Postmark, SES) works too.
-
-### 4. Deploy
-
-```sh
-cloud deploy <app-name> production --no-wait --json -n
-cloud deployment:get <deployment-id> --json -n   # repeat until deployment.succeeded
-```
-
-With push-to-deploy on, which is the default, every `git push` redeploys the site.
-
-**Verified on Cloud (September 2026):** after 6½ idle minutes (5-minute sleep timeout), the first request took 0.74 s; the next ones took 0.16–0.21 s.
 
 ---
 
