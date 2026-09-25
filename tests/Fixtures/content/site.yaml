@@ -1,0 +1,26 @@
+name: Test Person
+role: Engineer
+location: Testville
+timezone: UTC
+email: owner@example.test
+description: Fixture site.
+availability:
+    open: true
+    note: Available.
+intro: Fixture intro.
+links:
+    - label: GitHub
+      url: https://github.com/
+resume: null
+about: |
+    Fixture **about** text.
+contact_note: Say hi.
+skills:
+    - group: Languages
+      items: [PHP]
+experience:
+    - company: Acme
+      role: Engineer
+      start: 2020-01
+      end: null
+education: []

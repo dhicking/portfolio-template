@@ -13,8 +13,11 @@ export default defineConfig({
             input: ['resources/css/app.css', 'resources/js/app.tsx'],
             refresh: true,
             fonts: [
-                bunny('Instrument Sans', {
+                bunny('Host Grotesk', {
                     weights: [400, 500, 600],
+                }),
+                bunny('IBM Plex Mono', {
+                    weights: [400, 500],
                 }),
             ],
         }),
@@ -66,6 +69,7 @@ export default defineConfig({
         ignorePatterns: [
             '.github/**',
             'composer.json',
+            'content/**',
             'resources/js/components/ui/*',
             'resources/views/mail/*',
         ],

@@ -2,15 +2,16 @@
 
 namespace Tests;
 
+use App\Content\Portfolio;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
-use Laravel\Fortify\Features;
 
 abstract class TestCase extends BaseTestCase
 {
-    protected function skipUnlessFortifyHas(string $feature, ?string $message = null): void
+    protected function setUp(): void
     {
-        if (! Features::enabled($feature)) {
-            $this->markTestSkipped($message ?? "Fortify feature [{$feature}] is not enabled.");
-        }
+        parent::setUp();
+
+        // Tests read fixed fixture content, so editing content/ never breaks the suite.
+        $this->app->singleton(Portfolio::class, fn (): Portfolio => new Portfolio(base_path('tests/Fixtures/content')));
     }
 }

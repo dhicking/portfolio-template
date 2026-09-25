@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Content\Portfolio;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -37,11 +39,10 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
-            'name' => config('app.name'),
-            'auth' => [
-                'user' => $request->user(),
-            ],
-            'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'site' => Arr::only(app(Portfolio::class)->site(), [
+                'name', 'role', 'location', 'timezone', 'email', 'availability', 'links', 'resume', 'description',
+            ]),
+            'url' => $request->url(),
         ];
     }
 }

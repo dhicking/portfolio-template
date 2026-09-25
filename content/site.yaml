@@ -1,0 +1,97 @@
+# ---------------------------------------------------------------------------
+# This file is you. Everything on the site that isn't a project or a post
+# comes from here. Edit it, push, and Laravel Cloud redeploys.
+# ---------------------------------------------------------------------------
+
+name: Ines Varga
+role: Backend engineer
+location: Rotterdam, NL
+timezone: Europe/Amsterdam # any tz database name — drives the live clock in the header
+email: ines@example.com # contact form messages are sent here
+
+# Used for <meta name="description"> and link previews.
+description: Ines Varga is a backend engineer in Rotterdam who works on billing, queues and the integrations that keep them honest.
+
+availability:
+  open: true # false hides the "open to work" line everywhere
+  note: Looking for a senior backend role, remote or Rotterdam/Amsterdam. Free from December 2026.
+
+# One or two sentences. This is the first thing a recruiter reads — make it concrete.
+intro: >
+  I work on the parts of a product that have to be right: billing runs,
+  queue pipelines and the integrations with other people's APIs. Seven years
+  of Laravel, mostly at companies with fewer than forty engineers.
+
+links:
+  - label: GitHub
+    url: https://github.com/
+  - label: LinkedIn
+    url: https://www.linkedin.com/
+  - label: Mastodon
+    url: https://phpc.social/
+
+# Path to a PDF in /public, or null to hide the download link.
+resume: /resume.pdf
+
+# Markdown. Shown on /about.
+about: |
+  I started out writing WordPress plugins for a print shop in Szeged, moved
+  to the Netherlands in 2018 and have been writing Laravel professionally
+  since.
+
+  Most of my work sits between a product and the outside world: payment
+  providers, carrier APIs, accounting exports. I like that kind of work
+  because it fails in specific, reproducible ways, and a small fix can stop
+  a whole category of support tickets.
+
+  Outside work I maintain a small PHP library for recurring schedules and
+  help run the Rotterdam PHP meetup.
+
+contact_note: >
+  The fastest way to reach me is email. I answer everything within two
+  working days. Recruiters welcome, but please include the salary range.
+
+skills:
+  - group: Languages
+    items: [PHP, TypeScript, SQL, Go]
+  - group: Frameworks
+    items: [Laravel, Inertia, React, Pest]
+  - group: Infrastructure
+    items: [MySQL, Postgres, Redis, Laravel Cloud, AWS SQS]
+  - group: Practices
+    items: [Code review, Incident write-ups, Mentoring juniors]
+
+experience:
+  - company: Havenlijn Logistics
+    role: Senior backend engineer
+    location: Rotterdam
+    start: 2023-03
+    end: null # null = present
+    summary: Freight brokerage, 30 engineers. Own the carrier-integration and invoicing services.
+    highlights:
+      - Replaced a nightly CSV import with webhook-driven sync; invoice disputes fell from ~40 to ~6 a month.
+      - Led the move from a self-managed queue box to managed queues with no dropped jobs.
+      - Mentor two junior engineers; wrote the team's incident review template.
+  - company: Kliniekplan
+    role: Full-stack developer
+    location: Utrecht (remote)
+    start: 2020-06
+    end: 2023-02
+    summary: Booking software for physiotherapy clinics.
+    highlights:
+      - Rebuilt the booking flow in Inertia and React; median time-to-book went from 3m10s to 1m05s.
+      - Introduced Pest and brought the test suite from 0 to 1,400 tests.
+  - company: Nyomda Print
+    role: Developer
+    location: Szeged
+    start: 2016-09
+    end: 2018-08
+    summary: In-house developer for a commercial print shop.
+    highlights:
+      - Built the order-intake system still used to price and schedule jobs.
+
+education:
+  - school: University of Szeged
+    degree: BSc Computer Science
+    start: 2012
+    end: 2016
