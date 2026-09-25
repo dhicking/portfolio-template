@@ -5,6 +5,8 @@ sample content with your own, and deploy it to [Laravel Cloud](https://cloud.lar
 
 Built on Laravel 13, Inertia 3, React 19, Tailwind CSS 4 and shadcn/ui.
 
+**[See the demo →](https://portfolio-template.laravel.cloud)**
+
 ![Home page, light theme](.github/assets/home-light.png)
 
 - **No database.** One YAML file holds your profile, and each project and post is a Markdown file. There's no admin panel, nothing to provision and nothing to log into.
@@ -16,15 +18,18 @@ Built on Laravel 13, Inertia 3, React 19, Tailwind CSS 4 and shadcn/ui.
 
 ---
 
-## Run it locally
+## Get your copy
 
-You'll need PHP 8.3+, Composer and Node 22+. No database is needed.
+1. Click **Use this template → Create a new repository** at the top of this page. You get your own repository without this one's history.
+2. Clone it and run it locally. You'll need PHP 8.3+, Composer and Node 22+. No database is needed.
 
 ```sh
-git clone https://github.com/you/portfolio.git && cd portfolio
+git clone https://github.com/<you>/<your-repo>.git && cd <your-repo>
 composer setup      # installs dependencies, creates .env, builds assets
 composer run dev    # http://localhost:8000
 ```
+
+3. Replace the sample content ([Make it yours](#make-it-yours)), push, and [deploy to Laravel Cloud](#deploy-to-laravel-cloud).
 
 ## Make it yours
 
@@ -168,4 +173,4 @@ resources/js/pages/            one file per page
 
 ## License
 
-MIT. Remove the sample content (Ines Varga is not a real person) before you publish.
+[MIT](LICENSE). Remove the sample content (Ines Varga is not a real person) before you publish.

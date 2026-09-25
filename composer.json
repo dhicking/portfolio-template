@@ -1,11 +1,14 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/react-starter-kit",
+    "name": "dhicking/portfolio-template",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "A portfolio template for developers: Laravel, Inertia, React and shadcn/ui, built to run on Laravel Cloud with scale to zero.",
     "keywords": [
         "laravel",
-        "framework"
+        "inertia",
+        "react",
+        "portfolio",
+        "template"
     ],
     "license": "MIT",
     "require": {
