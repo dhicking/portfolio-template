@@ -159,6 +159,7 @@ A MySQL Flex cluster sleeps once it has had no connections for its idle timeout.
 
 - **Wake cost:** after 9 idle minutes, the first query took 315 ms; a fresh connection straight afterwards took 9 ms.
 - **Page traffic:** after 180 page requests over 7 minutes, covering every page, the feed and the sitemap, the next query still took 236 ms. The database had slept through all of it.
+- **App wake:** after 6½ idle minutes (5-minute sleep timeout), the first request took 0.74 s; the next ones took 0.16–0.21 s.
 
 ---
 
