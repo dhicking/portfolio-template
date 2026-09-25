@@ -35,7 +35,9 @@ export default function Contact({ note }: { note: string | null }) {
                         )}
                         <dl className="mt-10 space-y-5">
                             <div>
-                                <dt className="caption text-[0.6875rem] font-normal">Email</dt>
+                                <dt className="caption text-[0.6875rem] font-normal">
+                                    Email
+                                </dt>
                                 <dd className="mt-1">
                                     <a
                                         href={`mailto:${site.email}`}
@@ -46,7 +48,9 @@ export default function Contact({ note }: { note: string | null }) {
                                 </dd>
                             </div>
                             <div>
-                                <dt className="caption text-[0.6875rem] font-normal">Local time</dt>
+                                <dt className="caption text-[0.6875rem] font-normal">
+                                    Local time
+                                </dt>
                                 <dd className="mt-1">
                                     <LocalTime timezone={site.timezone} /> in{' '}
                                     {site.location}

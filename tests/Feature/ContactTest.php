@@ -70,3 +70,12 @@ test('senders are limited to three messages every ten minutes', function () {
 
     expect(ContactMessage::count())->toBe(3);
 });
+
+test('stored messages can be read from the command line', function () {
+    ContactMessage::factory()->create(['name' => 'Recruiter', 'message' => 'Are you free for a call?']);
+
+    $this->artisan('contact:messages')
+        ->expectsOutputToContain('Recruiter')
+        ->expectsOutputToContain('Are you free for a call?')
+        ->assertSuccessful();
+});
