@@ -1,12 +1,12 @@
 <x-mail::message>
-# {{ $contactMessage->name }}
+# {{ $senderName }}
 
-{{ $contactMessage->email }}@if ($contactMessage->company) · {{ $contactMessage->company }}@endif
+{{ $senderEmail }}@if ($company) · {{ $company }}@endif
 
 
 <x-mail::panel>
-{{ $contactMessage->message }}
+{{ $body }}
 </x-mail::panel>
 
-Reply to this email to answer {{ $contactMessage->name }} directly.
+Reply to this email to answer {{ $senderName }} directly.
 </x-mail::message>

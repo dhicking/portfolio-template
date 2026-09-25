@@ -1,16 +1,11 @@
 <?php
 
 use App\Mail\ContactMessageReceived;
-use App\Models\ContactMessage;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Mail;
+use Inertia\Testing\AssertableInertia as Assert;
 
-uses(RefreshDatabase::class);
-
-beforeEach(function () {
-    Mail::fake();
-    $this->withoutDefer();
-});
+beforeEach(fn () => Mail::fake());
 
 function validMessage(array $overrides = []): array
 {
@@ -23,26 +18,23 @@ function validMessage(array $overrides = []): array
     ];
 }
 
-test('a message is stored and emailed to the site owner', function () {
+test('a message is emailed to the site owner', function () {
     $this->from(route('contact'))
         ->post(route('contact.store'), validMessage())
         ->assertRedirect(route('contact'))
         ->assertSessionHasNoErrors();
 
-    $message = ContactMessage::sole();
-    expect($message->email)->toBe('recruiter@example.com');
-
     Mail::assertSent(ContactMessageReceived::class, fn (ContactMessageReceived $mail) => $mail->hasTo('owner@example.test')
         && $mail->hasReplyTo('recruiter@example.com')
-        && $mail->contactMessage->is($message));
+        && $mail->company === 'Hiring Co'
+        && $mail->body === 'We have a role that looks like a good fit.');
 });
 
-test('a mail failure still keeps the message', function () {
+test('a mail failure tells the visitor to email directly', function () {
     Mail::shouldReceive('to')->andThrow(new RuntimeException('Mail is down'));
 
-    $this->post(route('contact.store'), validMessage())->assertSessionHasNoErrors();
-
-    expect(ContactMessage::count())->toBe(1);
+    $this->post(route('contact.store'), validMessage())
+        ->assertSessionHasErrors(['message' => 'Your message couldn’t be sent. Please email me directly at owner@example.test.']);
 });
 
 test('submissions that fill the honeypot are silently dropped', function () {
@@ -50,14 +42,13 @@ test('submissions that fill the honeypot are silently dropped', function () {
         ->assertRedirect()
         ->assertSessionHasNoErrors();
 
-    expect(ContactMessage::count())->toBe(0);
     Mail::assertNothingSent();
 });
 
 test('invalid submissions are rejected', function (array $input, string $field) {
     $this->post(route('contact.store'), validMessage($input))->assertSessionHasErrors($field);
 
-    expect(ContactMessage::count())->toBe(0);
+    Mail::assertNothingSent();
 })->with([
     'missing name' => [['name' => ''], 'name'],
     'bad email' => [['email' => 'not-an-email'], 'email'],
@@ -71,27 +62,27 @@ test('senders are limited to three messages every ten minutes', function () {
 
     $this->post(route('contact.store'), validMessage())->assertSessionHasErrors('message');
 
-    expect(ContactMessage::count())->toBe(3);
+    Mail::assertSentCount(3);
 });
 
-test('stored messages can be read from the command line', function () {
-    ContactMessage::factory()->create(['name' => 'Recruiter', 'message' => 'Are you free for a call?']);
+test('in production the form is hidden until a real mailer is configured', function () {
+    app()->detectEnvironment(fn () => 'production');
+    config(['mail.default' => 'log']);
 
-    $this->artisan('contact:messages')
-        ->expectsOutputToContain('Recruiter')
-        ->expectsOutputToContain('Are you free for a call?')
-        ->assertSuccessful();
+    $this->get(route('contact'))
+        ->assertInertia(fn (Assert $page) => $page->where('formEnabled', false));
+    $this->withoutMiddleware(PreventRequestForgery::class)
+        ->post(route('contact.store'), validMessage())
+        ->assertNotFound();
+
+    config(['mail.default' => 'resend']);
+
+    $this->get(route('contact'))
+        ->assertInertia(fn (Assert $page) => $page->where('formEnabled', true));
 });
 
 test('the notification email shows the sender and their message', function () {
-    $message = ContactMessage::factory()->make([
-        'name' => 'Recruiter',
-        'email' => 'recruiter@example.com',
-        'company' => 'Hiring Co',
-        'message' => 'We have a role that looks like a good fit.',
-    ]);
-
-    (new ContactMessageReceived($message))
+    (new ContactMessageReceived('Recruiter', 'recruiter@example.com', 'Hiring Co', 'We have a role that looks like a good fit.'))
         ->assertHasSubject('New message from Recruiter')
         ->assertSeeInText('recruiter@example.com · Hiring Co')
         ->assertSeeInText('We have a role that looks like a good fit.');

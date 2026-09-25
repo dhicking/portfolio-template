@@ -2,7 +2,6 @@
 
 namespace App\Mail;
 
-use App\Models\ContactMessage;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
@@ -13,7 +12,12 @@ class ContactMessageReceived extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct(public ContactMessage $contactMessage) {}
+    public function __construct(
+        public string $senderName,
+        public string $senderEmail,
+        public ?string $company,
+        public string $body,
+    ) {}
 
     /**
      * Get the message envelope.
@@ -21,8 +25,8 @@ class ContactMessageReceived extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            replyTo: [new Address($this->contactMessage->email, $this->contactMessage->name)],
-            subject: 'New message from '.$this->contactMessage->name,
+            replyTo: [new Address($this->senderEmail, $this->senderName)],
+            subject: 'New message from '.$this->senderName,
         );
     }
 

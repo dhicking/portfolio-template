@@ -5,14 +5,11 @@ namespace App\Http\Controllers;
 use App\Content\Portfolio;
 use App\Http\Requests\StoreContactMessageRequest;
 use App\Mail\ContactMessageReceived;
-use App\Models\ContactMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 use Throwable;
-
-use function Illuminate\Support\defer;
 
 class ContactController extends Controller
 {
@@ -20,27 +17,46 @@ class ContactController extends Controller
     {
         return Inertia::render('contact', [
             'note' => $portfolio->site()['contact_note'] ?? null,
+            'formEnabled' => $this->formEnabled(),
         ]);
     }
 
     public function store(StoreContactMessageRequest $request, Portfolio $portfolio): RedirectResponse
     {
+        abort_unless($this->formEnabled(), 404);
+
         if ($request->isSpam()) {
             return back();
         }
 
-        $message = ContactMessage::create($request->safe()->only(['name', 'email', 'company', 'message']));
+        $owner = $portfolio->site()['email'];
 
-        // Sent after the response so the visitor never waits on the mail API. The
-        // message is already stored, so a mail outage is reported, not surfaced.
-        defer(function () use ($portfolio, $message): void {
-            try {
-                Mail::to($portfolio->site()['email'])->send(new ContactMessageReceived($message));
-            } catch (Throwable $e) {
-                report($e);
-            }
-        });
+        try {
+            Mail::to($owner)->send(new ContactMessageReceived(
+                senderName: $request->string('name')->toString(),
+                senderEmail: $request->string('email')->toString(),
+                company: $request->validated('company'),
+                body: $request->string('message')->toString(),
+            ));
+        } catch (Throwable $e) {
+            // Email is the only copy of the message, so tell the visitor instead of pretending it arrived.
+            report($e);
+
+            return back()->withErrors([
+                'message' => "Your message couldn’t be sent. Please email me directly at {$owner}.",
+            ]);
+        }
 
         return back();
+    }
+
+    /**
+     * Messages are only delivered by email, so in production the form stays
+     * hidden until a real mailer (such as Resend) is configured.
+     */
+    private function formEnabled(): bool
+    {
+        return ! app()->isProduction()
+            || ! in_array(config('mail.default'), ['log', 'array'], true);
     }
 }

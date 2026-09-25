@@ -80,7 +80,7 @@ test('feed and sitemap are valid xml', function (string $route, string $type) {
     ['sitemap', 'application/xml'],
 ]);
 
-test('page views never touch the database, so it can scale to zero', function () {
+test('page views never touch the database', function () {
     DB::listen(fn ($query) => throw new RuntimeException("Unexpected query: {$query->sql}"));
 
     foreach (['home', 'projects.index', 'posts.index', 'about', 'contact', 'feed', 'sitemap'] as $route) {

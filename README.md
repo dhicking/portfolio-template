@@ -7,10 +7,10 @@ Built on Laravel 13, Inertia 3, React 19, Tailwind CSS 4 and shadcn/ui.
 
 ![Home page, light theme](.github/assets/home-light.png)
 
-- **Content lives in files.** One YAML file holds your profile, and each project and post is a Markdown file. There's no admin panel, no database for content, and nothing extra to log into.
+- **No database.** One YAML file holds your profile, and each project and post is a Markdown file. There's no admin panel, nothing to provision and nothing to log into.
 - **Pages:** home, work index with case studies, writing with an RSS feed, about (experience, skills, education, résumé download) and contact.
-- **Contact form:** messages are saved to MySQL and emailed to you through Resend. It has a honeypot and a rate limit, and a failed email never loses a message.
-- **Built for scale-to-zero.** Page views never touch the database (a test enforces this), so compute and MySQL can both sleep when nobody is visiting.
+- **Contact form:** messages are emailed to you through Resend, with Reply-To set to the sender. It has a honeypot and a rate limit. If sending fails, the visitor is told to email you directly, so no message silently disappears.
+- **Built for scale-to-zero.** Nothing runs on a timer and there's no database to keep awake, so the app sleeps when nobody is visiting.
 - **Server-side rendered** with Inertia SSR, so recruiters, search engines and link previews see real HTML with the right title and description.
 - Light and dark themes, a sitemap, and a clock showing your local time.
 
@@ -18,11 +18,11 @@ Built on Laravel 13, Inertia 3, React 19, Tailwind CSS 4 and shadcn/ui.
 
 ## Run it locally
 
-You'll need PHP 8.3+, Composer and Node 22+. Locally the site uses SQLite, so you don't need MySQL on your machine.
+You'll need PHP 8.3+, Composer and Node 22+. No database is needed.
 
 ```sh
 git clone https://github.com/you/portfolio.git && cd portfolio
-composer setup      # installs dependencies, creates .env, migrates, builds assets
+composer setup      # installs dependencies, creates .env, builds assets
 composer run dev    # http://localhost:8000
 ```
 
@@ -48,7 +48,7 @@ title: Carrier invoice sync
 summary: One sentence with a number in it. Shown in lists and link previews.
 year: 2024
 role: Lead engineer
-stack: [Laravel, MySQL, SQS]
+stack: [Laravel, SQS]
 featured: true # show on the home page
 order: 1 # lower comes first
 image: /images/sync.png # optional, put the file in public/images
@@ -78,17 +78,21 @@ Changes to `content/` show up on the next page load, locally and after each depl
 
 ## Deploy to Laravel Cloud
 
-Push your copy to GitHub, GitLab or Bitbucket first. With the [Cloud CLI](https://github.com/laravel/cloud-cli), the whole setup is five commands. Every setting can also be changed in the dashboard.
+Push your copy to GitHub, GitLab or Bitbucket first.
 
-### 1. Ship it
+### 1. Create the application without a database
 
-Run this from the project directory:
+**Dashboard:** create an application from your repository and don't add a database.
+
+**CLI:** `cloud ship` always creates a database (Postgres unless you pick another) and has no option to skip it. Ship, then detach the database and clear the deploy command, which would otherwise run `php artisan migrate`:
 
 ```sh
-cloud ship --database=mysql -n
+cloud ship -n
+cloud environment:list <app-name> --json -n   # note the environment id
+cloud environment:update <environment-id> --database-id="" --deploy-command="" --json -n --force
 ```
 
-This creates the application, a `production` environment and a Flex Laravel MySQL cluster, runs the migrations and deploys. The site works at this point. The next three steps make it cheap to run.
+Then delete the unused cluster from **Organization → Resources → Databases**, or with `cloud database-cluster:delete <cluster-id> -n --force`.
 
 ### 2. Let the app sleep and render on the server
 
@@ -110,18 +114,20 @@ SSR also needs the SSR bundle, so switch the last build command from `npm run bu
 cloud environment:update <environment-id> --json -n --force --build-command="$(printf 'composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader\n\nnpm ci --audit false\nnpm run build:ssr')"
 ```
 
-In the dashboard, the same settings are on the App cluster (Scale to Zero, Use Inertia SSR, Scheduler) and under **Settings → Deployments** (build commands).
+In the dashboard, the same settings are on the App cluster (Scale to Zero, Use Inertia SSR, Scheduler) and under **Settings → Deployments** (build and deploy commands).
 
-### 3. Let the database sleep
+### 3. Turn on the contact form
 
-New MySQL Flex clusters are created with scale-to-zero **off** (`suspend_seconds: 0`). Turn it on with an idle timeout in seconds (60–3600):
+Messages are only delivered by email, so in production the form stays hidden until a real mailer is configured. Until then the contact page shows your email address. Add these environment variables:
 
-```sh
-cloud database-cluster:list --json -n   # note the cluster id
-cloud database-cluster:update <cluster-id> --suspend-seconds=300 --json -n --force
-```
+| Variable            | Value                                                                          |
+| ------------------- | ------------------------------------------------------------------------------ |
+| `MAIL_MAILER`       | `resend`                                                                       |
+| `RESEND_API_KEY`    | From [resend.com](https://resend.com). The Resend package is already installed |
+| `MAIL_FROM_ADDRESS` | An address on a domain you've verified in Resend, e.g. `site@yourname.dev`     |
+| `APP_NAME`          | Your name. Used as the email sender name                                       |
 
-The CLI help labels `--suspend-seconds` as Neon-only, but Laravel MySQL accepts it too. Wait until `cloud database-cluster:get <cluster-id> --json -n` shows `"status": "available"` before deploying. A deploy that starts while the cluster is still updating fails with _"The attached database is not available."_
+Any other Laravel mailer (SMTP, Postmark, SES) works too.
 
 ### 4. Deploy
 
@@ -130,46 +136,11 @@ cloud deploy <app-name> production --no-wait --json -n
 cloud deployment:get <deployment-id> --json -n   # repeat until deployment.succeeded
 ```
 
-### 5. Environment variables (optional)
+With push-to-deploy on, which is the default, every `git push` redeploys the site.
 
-The site runs without any. Add these when you want contact emails:
-
-| Variable            | Why                                                                            |
-| ------------------- | ------------------------------------------------------------------------------ |
-| `APP_NAME`          | Your name. Used as the email sender name                                       |
-| `MAIL_MAILER`       | `resend` to send contact emails. Default `log` only stores them                |
-| `RESEND_API_KEY`    | From [resend.com](https://resend.com). The Resend package is already installed |
-| `MAIL_FROM_ADDRESS` | An address on a domain you've verified in Resend, e.g. `site@yourname.dev`     |
-
-Don't set `SESSION_DRIVER` or `QUEUE_CONNECTION` to `database`.
-
-### Why it can sleep
-
-A MySQL Flex cluster sleeps once it has had no connections for its idle timeout. This app only opens a connection when someone submits the contact form:
-
-- **Content** is parsed from files and cached on local disk. The content cache is pinned to the `file` store in code, so it stays off the database even though Cloud injects `CACHE_STORE=database` when a database is attached.
-- **The default cache** (Cloud's `database` store) is used only by the contact form's rate limiter, which runs on POST.
-- **Sessions** are stored in an encrypted cookie (Cloud injects `SESSION_DRIVER=cookie` too). They only carry CSRF and form errors.
-- **Mail** is sent during the request, so no queue worker is needed.
-- **Nothing is scheduled**, so nothing wakes the app or the database on a timer.
-
-`tests/Feature/PortfolioPagesTest.php` fails if any page runs a query, so you can't break this by accident.
-
-**Verified on Cloud (September 2026):**
-
-- **Wake cost:** after 9 idle minutes, the first query took 315 ms; a fresh connection straight afterwards took 9 ms.
-- **Page traffic:** after 180 page requests over 7 minutes, covering every page, the feed and the sitemap, the next query still took 236 ms. The database had slept through all of it.
-- **App wake:** after 6½ idle minutes (5-minute sleep timeout), the first request took 0.74 s; the next ones took 0.16–0.21 s.
+**Verified on Cloud (September 2026):** after 6½ idle minutes (5-minute sleep timeout), the first request took 0.74 s; the next ones took 0.16–0.21 s.
 
 ---
-
-## Reading messages
-
-Every message is emailed to the address in `site.yaml`, with Reply-To set to the sender. They're also stored in the database. To read the latest, run this in the environment's **Commands** tab on Cloud, or locally:
-
-```sh
-php artisan contact:messages --limit=20
-```
 
 ## Development
 
