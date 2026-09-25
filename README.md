@@ -78,64 +78,87 @@ Changes to `content/` show up on the next page load, locally and after each depl
 
 ## Deploy to Laravel Cloud
 
-Push your copy to GitHub, GitLab or Bitbucket first.
+Push your copy to GitHub, GitLab or Bitbucket first. With the [Cloud CLI](https://github.com/laravel/cloud-cli), the whole setup is five commands. Every setting can also be changed in the dashboard.
 
-### 1. Create the application
+### 1. Ship it
 
-In the Cloud dashboard, create an application from your repository. Or, with the [Cloud CLI](https://github.com/laravel/cloud-cli), run this from the project directory:
+Run this from the project directory:
 
 ```sh
 cloud ship --database=mysql -n
 ```
 
-### 2. Configure the App cluster
+This creates the application, a `production` environment and a Flex Laravel MySQL cluster, runs the migrations and deploys. The site works at this point. The next three steps make it cheap to run.
 
-Open the App cluster on the environment's canvas and set the following:
+### 2. Let the app sleep and render on the server
 
-- **Size:** any Flex size. Only Flex sizes can scale to zero.
-- **Scale to Zero:** on. New Flex sizes wake in under 500 ms.
-- **Use Inertia SSR:** on.
-
-Then open **Settings → Deployments**:
-
-- **Build commands:** replace `npm run build` with `npm run build:ssr`.
-- **Deploy command:** `php artisan migrate --force`
-
-With the CLI, find the instance ID first (`cloud instance:list --json -n`), then run:
+`cloud ship` leaves Scale to Zero off and turns the scheduler on. This app has no scheduled tasks, so turn the scheduler off, and turn on Scale to Zero and Inertia SSR:
 
 ```sh
-cloud instance:update <instance-id> --scale-to-zero=true --uses-inertia-ssr=true --json -n --force
+cloud instance:list --json -n   # note the App instance id
+cloud instance:update <instance-id> \
+  --scale-to-zero=true --scale-to-zero-timeout=5 \
+  --uses-inertia-ssr=true --uses-scheduler=0 \
+  --json -n --force
 ```
 
-### 3. Configure the database
+The timeout is in minutes (1–60) and the API rejects the update without it. Use `--uses-scheduler=0` rather than `=false`: `false` was ignored in CLI v0.6.1.
 
-The contact form needs a **Laravel MySQL** database. Choose a **Flex** size (Pro sizes are always on), attach it to the environment, and turn on **Scale to Zero** with an idle timeout of a few minutes. Cloud injects the connection details, and the app defaults to the `mysql` connection, so you don't need to set any database variables.
+SSR also needs the SSR bundle, so switch the last build command from `npm run build` to `npm run build:ssr`:
 
-### 4. Environment variables
+```sh
+cloud environment:update <environment-id> --json -n --force --build-command="$(printf 'composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader\n\nnpm ci --audit false\nnpm run build:ssr')"
+```
 
-The site runs without any extra variables. Add these when you're ready:
+In the dashboard, the same settings are on the App cluster (Scale to Zero, Use Inertia SSR, Scheduler) and under **Settings → Deployments** (build commands).
+
+### 3. Let the database sleep
+
+New MySQL Flex clusters are created with scale-to-zero **off** (`suspend_seconds: 0`). Turn it on with an idle timeout in seconds (60–3600):
+
+```sh
+cloud database-cluster:list --json -n   # note the cluster id
+cloud database-cluster:update <cluster-id> --suspend-seconds=300 --json -n --force
+```
+
+The CLI help labels `--suspend-seconds` as Neon-only, but Laravel MySQL accepts it too. Wait until `cloud database-cluster:get <cluster-id> --json -n` shows `"status": "available"` before deploying. A deploy that starts while the cluster is still updating fails with _"The attached database is not available."_
+
+### 4. Deploy
+
+```sh
+cloud deploy <app-name> production --no-wait --json -n
+cloud deployment:get <deployment-id> --json -n   # repeat until deployment.succeeded
+```
+
+### 5. Environment variables (optional)
+
+The site runs without any. Add these when you want contact emails:
 
 | Variable            | Why                                                                            |
 | ------------------- | ------------------------------------------------------------------------------ |
 | `APP_NAME`          | Your name. Used as the email sender name                                       |
-| `MAIL_MAILER`       | `resend` to send contact emails, or `log` to only store them                   |
+| `MAIL_MAILER`       | `resend` to send contact emails. Default `log` only stores them                |
 | `RESEND_API_KEY`    | From [resend.com](https://resend.com). The Resend package is already installed |
 | `MAIL_FROM_ADDRESS` | An address on a domain you've verified in Resend, e.g. `site@yourname.dev`     |
 
-Leave `SESSION_DRIVER`, `CACHE_STORE` and `QUEUE_CONNECTION` unset. The defaults (`cookie`, `file` and `sync`) are what let the database sleep. Setting any of them to `database` means every page view wakes MySQL.
-
-Save, then deploy.
+Don't set `SESSION_DRIVER` or `QUEUE_CONNECTION` to `database`.
 
 ### Why it can sleep
 
 A MySQL Flex cluster sleeps once it has had no connections for its idle timeout. This app only opens a connection when someone submits the contact form:
 
-- **Content** is parsed from files and cached on local disk, never in the database.
-- **Sessions** are stored in an encrypted cookie. They only carry CSRF and form errors.
+- **Content** is parsed from files and cached on local disk. The content cache is pinned to the `file` store in code, so it stays off the database even though Cloud injects `CACHE_STORE=database` when a database is attached.
+- **The default cache** (Cloud's `database` store) is used only by the contact form's rate limiter, which runs on POST.
+- **Sessions** are stored in an encrypted cookie (Cloud injects `SESSION_DRIVER=cookie` too). They only carry CSRF and form errors.
 - **Mail** is sent during the request, so no queue worker is needed.
-- **Nothing is scheduled**, so the scheduler never wakes the app.
+- **Nothing is scheduled**, so nothing wakes the app or the database on a timer.
 
 `tests/Feature/PortfolioPagesTest.php` fails if any page runs a query, so you can't break this by accident.
+
+**Verified on Cloud (September 2026):**
+
+- **Wake cost:** after 9 idle minutes, the first query took 315 ms; a fresh connection straight afterwards took 9 ms.
+- **Page traffic:** after 180 page requests over 7 minutes, covering every page, the feed and the sitemap, the next query still took 236 ms. The database had slept through all of it.
 
 ---
 
