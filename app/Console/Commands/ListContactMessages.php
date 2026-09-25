@@ -16,7 +16,7 @@ class ListContactMessages extends Command
      */
     public function handle(): int
     {
-        $messages = ContactMessage::latest()->limit((int) $this->option('limit'))->get();
+        $messages = ContactMessage::latest()->orderByDesc('id')->limit((int) $this->option('limit'))->get();
 
         if ($messages->isEmpty()) {
             $this->components->info('No messages yet.');

@@ -149,7 +149,7 @@ class Portfolio
                     'summary' => $meta['summary'] ?? '',
                     'date' => Carbon::parse($meta['date'])->toDateString(),
                     'draft' => (bool) ($meta['draft'] ?? false),
-                    'minutes' => max(1, (int) round(str_word_count(strip_tags($html)) / 230)),
+                    'minutes' => max(1, (int) round(count(preg_split('/\s+/u', trim(strip_tags($html)), flags: PREG_SPLIT_NO_EMPTY) ?: []) / 230)),
                     'body' => $html,
                 ];
             })

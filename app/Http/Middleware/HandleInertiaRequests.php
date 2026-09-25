@@ -18,6 +18,8 @@ class HandleInertiaRequests extends Middleware
      */
     protected $rootView = 'app';
 
+    public function __construct(private Portfolio $portfolio) {}
+
     /**
      * Determines the current asset version.
      *
@@ -39,7 +41,7 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
-            'site' => Arr::only(app(Portfolio::class)->site(), [
+            'site' => Arr::only($this->portfolio->site(), [
                 'name', 'role', 'location', 'timezone', 'email', 'availability', 'links', 'resume', 'description',
             ]),
             'url' => $request->url(),

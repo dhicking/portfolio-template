@@ -12,6 +12,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Throwable;
 
+use function Illuminate\Support\defer;
+
 class ContactController extends Controller
 {
     public function show(Portfolio $portfolio): Response
@@ -27,14 +29,17 @@ class ContactController extends Controller
             return back();
         }
 
-        $message = ContactMessage::create($request->safe()->except('website'));
+        $message = ContactMessage::create($request->safe()->only(['name', 'email', 'company', 'message']));
 
-        try {
-            Mail::to($portfolio->site()['email'])->send(new ContactMessageReceived($message));
-        } catch (Throwable $e) {
-            // The message is already stored, so a mail outage should not fail the visitor's request.
-            report($e);
-        }
+        // Sent after the response so the visitor never waits on the mail API. The
+        // message is already stored, so a mail outage is reported, not surfaced.
+        defer(function () use ($portfolio, $message): void {
+            try {
+                Mail::to($portfolio->site()['email'])->send(new ContactMessageReceived($message));
+            } catch (Throwable $e) {
+                report($e);
+            }
+        });
 
         return back();
     }

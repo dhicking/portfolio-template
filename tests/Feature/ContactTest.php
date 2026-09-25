@@ -7,7 +7,10 @@ use Illuminate\Support\Facades\Mail;
 
 uses(RefreshDatabase::class);
 
-beforeEach(fn () => Mail::fake());
+beforeEach(function () {
+    Mail::fake();
+    $this->withoutDefer();
+});
 
 function validMessage(array $overrides = []): array
 {
@@ -78,4 +81,18 @@ test('stored messages can be read from the command line', function () {
         ->expectsOutputToContain('Recruiter')
         ->expectsOutputToContain('Are you free for a call?')
         ->assertSuccessful();
+});
+
+test('the notification email shows the sender and their message', function () {
+    $message = ContactMessage::factory()->make([
+        'name' => 'Recruiter',
+        'email' => 'recruiter@example.com',
+        'company' => 'Hiring Co',
+        'message' => 'We have a role that looks like a good fit.',
+    ]);
+
+    (new ContactMessageReceived($message))
+        ->assertHasSubject('New message from Recruiter')
+        ->assertSeeInText('recruiter@example.com · Hiring Co')
+        ->assertSeeInText('We have a role that looks like a good fit.');
 });
