@@ -30,13 +30,14 @@ class ContactController extends Controller
         }
 
         $owner = $portfolio->site()['email'];
+        $input = $request->safe();
 
         try {
             Mail::to($owner)->send(new ContactMessageReceived(
-                senderName: $request->string('name')->toString(),
-                senderEmail: $request->string('email')->toString(),
-                company: $request->validated('company'),
-                body: $request->string('message')->toString(),
+                senderName: $input->string('name')->toString(),
+                senderEmail: $input->string('email')->toString(),
+                company: $input->input('company'),
+                body: $input->string('message')->toString(),
             ));
         } catch (Throwable $e) {
             // Email is the only copy of the message, so tell the visitor instead of pretending it arrived.
