@@ -7,7 +7,9 @@ Built on Laravel 13, Inertia 3, React 19, Tailwind CSS 4 and shadcn/ui.
 
 **[See the demo →](https://portfolio-template.laravel.cloud)**
 
-![Home page, light theme](.github/assets/home-light.png)
+| Light                                                                                     | Dark                                                                                   |
+| ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| [![Home page, light theme](.github/assets/home-light.png)](.github/assets/home-light.png) | [![Home page, dark theme](.github/assets/home-dark.png)](.github/assets/home-dark.png) |
 
 - **No database.** One YAML file holds your profile, and each project and post is a Markdown file. There's no admin panel, nothing to provision and nothing to log into.
 - **Pages:** home, work index with case studies, writing with an RSS feed, about (experience, skills, education, résumé download) and contact.
